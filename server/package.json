@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server/server.js",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --runInBand --rootDir server"
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
   "dependencies": {},
   "devDependencies": {
