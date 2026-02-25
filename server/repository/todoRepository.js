@@ -1,31 +1,25 @@
-let tasks = [];
+let todos = [];
 let nextId = 1;
 
 export const reset = () => {
-  tasks = [];
+  todos = [];
   nextId = 1;
 };
 
 export const getAll = () => {
-  return tasks;
+  return todos;
 };
 
 export const create = (description) => {
-  const newTask = {
-    id: nextId,
-    description: description
-  };
-  tasks.push(newTask);
-  nextId++;
-  return newTask;
+  const todo = { id: nextId++, description };
+  todos.push(todo);
+  return todo;
 };
 
 export const remove = (id) => {
-  for (let i = 0; i < tasks.length; i++) {
-    if (tasks[i].id === id) {
-      tasks.splice(i, 1);
-      return true;
-    }
-  }
-  return false;
+  const index = todos.findIndex((t) => t.id === id);
+  if (index === -1) return false;
+
+  todos.splice(index, 1);
+  return true;
 };

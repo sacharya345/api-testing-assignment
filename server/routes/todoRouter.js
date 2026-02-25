@@ -1,58 +1,55 @@
 import express from "express";
-import { create, getAll, remove } from "../repository/todoRepository.js";
 import jwt from "jsonwebtoken";
+import * as todoRepo from "../repository/todoRepository.js";
 
 const router = express.Router();
 
-// Authentication middleware
-const authenticate = (req, res, next) => {
-  const token = req.headers.authorization;
-  
-  if (!token) {
-    return res.status(401).json({ error: "No token provided" });
-  }
-  
+// Auth middleware: expects token in Authorization header (supports "Bearer <token>" too)
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.header("Authorization");
+
+  if (!authHeader) return res.sendStatus(401);
+
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : authHeader;
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch (error) {
-    return res.status(401).json({ error: "Invalid token" });
+  } catch (err) {
+    return res.sendStatus(401);
   }
 };
 
-// Apply authentication to all routes
-router.use(authenticate);
-
+// GET /  -> list all tasks (PUBLIC)
 router.get("/", (req, res) => {
-  const tasks = getAll();
-  res.json(tasks);
+  res.status(200).json(todoRepo.getAll());
 });
 
-router.post("/create", (req, res) => {
-  const { task } = req.body;
+// POST /create -> create task (PROTECTED)
+router.post("/create", authMiddleware, (req, res) => {
+  const { description } = req.body;
 
-  if (!task || !task.description) {
-    return res.status(400).json({ error: "Missing task description" });
+  // Validation: must exist and be >= 3 chars
+  if (!description || typeof description !== "string" || description.length < 3) {
+    return res.status(400).json({ error: "Description must be at least 3 characters" });
   }
 
-  if (task.description.length < 3) {
-    return res.status(400).json({ error: "Description too short" });
-  }
-
-  const newTask = create(task.description);
-  res.status(201).json(newTask);
+  const created = todoRepo.create(description);
+  return res.status(201).json(created);
 });
 
-router.delete("/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const result = remove(id);
+// DELETE /:id -> delete task by id (PROTECTED)
+router.delete("/:id", authMiddleware, (req, res) => {
+  const id = Number(req.params.id);
 
-  if (result) {
-    res.status(204).send();
-  } else {
-    res.status(404).json({ error: "Task not found" });
-  }
+  if (Number.isNaN(id)) return res.sendStatus(400);
+
+  const removed = todoRepo.remove(id);
+  if (!removed) return res.sendStatus(404);
+
+  return res.sendStatus(204);
 });
 
 export default router;
